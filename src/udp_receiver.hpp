@@ -1,5 +1,5 @@
 #pragma once
-#include "thread_safe_queue.hpp"
+#include "tsqueue.hpp"
 #include <array>
 #include <boost/asio.hpp>
 #include <cstdint>
@@ -29,7 +29,7 @@ class Receiver
                                    [this](auto error, auto bytes_read) { return handle_receive(error, bytes_read); });
     }
 
-    void handle_receive(const boost::system::error_code &error, std::size_t bytes_read)
+    void handle_receive([[maybe_unused]] const boost::system::error_code &error, std::size_t bytes_read)
     {
         // Copy data into packet
         Packet packet{.data{buffer_.data(), bytes_read}, .endpoint{remote_endpoint_}};

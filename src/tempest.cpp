@@ -1,6 +1,8 @@
 #include "tempest.hpp"
+#include <cstdlib>
 #include <iostream>
 #include <print>
+#include <spdlog/spdlog.h>
 #include <thread>
 
 Tempest::Tempest() : queue_(std::make_shared<Receiver::QueueType>()), receiver_(io_context_, 50222, queue_)
@@ -9,10 +11,16 @@ Tempest::Tempest() : queue_(std::make_shared<Receiver::QueueType>()), receiver_(
 
 void Tempest::run()
 {
+    spdlog::info("Starting threads...");
     std::thread io_thread([this]() { io_context_.run(); });
     std::thread pc_thread([this]() { process(); });
     io_thread.join();
     pc_thread.join();
+}
+
+void Tempest::add_handler(HandlerType func)
+{
+    handlers_.push_back(func);
 }
 
 void Tempest::process()
@@ -26,23 +34,40 @@ void Tempest::process()
         }
         catch (std::exception &e)
         {
-            std::print(std::cerr, "{}\n", e.what());
+            spdlog::error("Failed to pop off queue: {}", e.what());
+            continue;
         }
 
-        json data = json::parse(packet.data);
+        json data;
+        try
+        {
+            data = json::parse(packet.data);
+        }
+        catch (std::runtime_error &e)
+        {
+            spdlog::error("Failed to parse JSON: {}", e.what());
+            continue;
+        }
 
         if (data.at("type") == "obs_st")
         {
-            auto obs = data.get<Observation>();
-            std::println("observation temp={}", obs.air_temp_f);
+            const auto obs = data.get<Observation>();
+            for (const auto &handler : handlers_)
+            {
+                handler(obs);
+            }
+            spdlog::debug(data.dump());
         }
     }
 }
 
 void from_json(const json &j, Observation &o)
 {
-    static constexpr double MS_TO_MPH = 2.23694;
-    static constexpr auto   C_TO_F    = [](const auto &c) { return ((c * 9.0 / 5.0) + 32); };
+    static constexpr auto MS_TO_MPH  = 2.23694;
+    static constexpr auto C_TO_F     = [](const auto &c) { return ((c * 9.0 / 5.0) + 32); };
+    static constexpr auto MM_TO_IN   = 0.0393701;
+    static constexpr auto KM_TO_MI   = 0.621371;
+    static constexpr auto MB_TO_INHG = 0.02953;
     j.at("firmware_revision").get_to(o.firmware_revision);
     j.at("serial_number").get_to(o.station_sn);
     j.at("hub_sn").get_to(o.hub_sn);
@@ -50,7 +75,12 @@ void from_json(const json &j, Observation &o)
     // denest observation array
     json obs = j.at("obs").at(0);
 
-    assert(obs.size() == 18);
+    if (obs.size() != 18)
+    {
+        // since the UDP message just uses an array of values and not keys... it isnt backwards compatible
+        throw std::runtime_error(
+            std::format("Observation array in JSON message must have 18 fields, got {}", obs.size()));
+    }
 
     obs[0].get_to(o.epoch_time);
     obs[1].get_to(o.wind.lull_mph);
@@ -61,16 +91,19 @@ void from_json(const json &j, Observation &o)
     o.wind.gust_mph *= MS_TO_MPH;
     obs[4].get_to(o.wind.dir_deg);
     obs[5].get_to(o.wind.sample_interval_secs);
-    obs[6].get_to(o.pressure_mb);
+    obs[6].get_to(o.pressure_inhg);
+    o.pressure_inhg *= MB_TO_INHG;
     obs[7].get_to(o.air_temp_f);
     o.air_temp_f = C_TO_F(o.air_temp_f);
     obs[8].get_to(o.relative_humidity);
     obs[9].get_to(o.illuminance_lux);
     obs[10].get_to(o.uv_index);
     obs[11].get_to(o.solar_radiation_wm2);
-    obs[12].get_to(o.rain_accum_mm);
+    obs[12].get_to(o.rain_accum_in);
+    o.rain_accum_in *= MM_TO_IN;
     obs[13].get_to(o.precipitation_type);
-    obs[14].get_to(o.lightning_strike_dist_km);
+    obs[14].get_to(o.lightning_strike_dist_mi);
+    o.lightning_strike_dist_mi *= KM_TO_MI;
     obs[15].get_to(o.lightning_strike_count);
     obs[16].get_to(o.battery_volts);
     obs[17].get_to(o.report_interval);

@@ -1,0 +1,21 @@
+version: "3.2"
+
+services:
+  tempest:
+    container_name: tempest
+    image: ryankelley20/tempest:latest
+    depends_on:
+      - db
+    restart: unless-stopped
+    network_mode: host
+  db:
+    container_name: tempest-db
+    image: docker.io/library/postgres:latest
+    restart: always
+    network_mode: host
+    environment:
+      - POSTGRES_USER=tempest
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=tempest
+    ports:
+      - 5432:5432
