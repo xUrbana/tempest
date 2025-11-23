@@ -7,6 +7,7 @@
 
 Tempest::Tempest() : queue_(std::make_shared<Receiver::QueueType>()), receiver_(io_context_, 50222, queue_)
 {
+    spdlog::set_level(spdlog::level::info);
 }
 
 void Tempest::run()
@@ -38,6 +39,8 @@ void Tempest::process()
             continue;
         }
 
+        spdlog::debug("Got packet...");
+
         json data;
         try
         {
@@ -49,14 +52,21 @@ void Tempest::process()
             continue;
         }
 
-        if (data.at("type") == "obs_st")
+        auto packet_type = data["type"].get<std::string>();
+        if (packet_type == "obs_st")
         {
+            spdlog::debug("Processing observation packet...");
             const auto obs = data.get<Observation>();
             for (const auto &handler : handlers_)
             {
+                spdlog::debug("Calling handler...");
                 handler(obs);
             }
             spdlog::debug(data.dump());
+        }
+        else
+        {
+            spdlog::debug("Got packet type \"{}\", ignoring...", packet_type);
         }
     }
 }

@@ -1,8 +1,12 @@
+add_library(tempest tempest.cpp)
+target_compile_options(tempest PUBLIC -Wall -O3 -g)
+target_include_directories(tempest PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-file(GLOB tempest_lib_sources "*.cpp")
+target_link_libraries(tempest PUBLIC nlohmann_json::nlohmann_json pqxx spdlog::spdlog)
 
-add_library(libtempest ${tempest_lib_sources})
-target_compile_options(libtempest PUBLIC -Wall -O3 -g)
-target_include_directories(libtempest PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+set(PYBIND11_FINDPYTHON ON)
+find_package(pybind11 CONFIG REQUIRED)
 
-target_link_libraries(libtempest PUBLIC nlohmann_json::nlohmann_json pqxx spdlog::spdlog)
+pybind11_add_module(pytempest pybind.cpp)
+target_link_libraries(pytempest PRIVATE tempest)
+install(TARGETS pytempest DESTINATION .)

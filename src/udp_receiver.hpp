@@ -4,6 +4,7 @@
 #include <boost/asio.hpp>
 #include <cstdint>
 #include <memory>
+#include <spdlog/spdlog.h>
 
 struct Packet
 {
@@ -25,6 +26,7 @@ class Receiver
 
     void receive()
     {
+        spdlog::debug("Starting receive...");
         socket_.async_receive_from(boost::asio::buffer(buffer_), remote_endpoint_,
                                    [this](auto error, auto bytes_read) { return handle_receive(error, bytes_read); });
     }
@@ -37,6 +39,7 @@ class Receiver
         // Start the next receive
         receive();
 
+        spdlog::debug("Pushing new packet onto queue...");
         queue_->push(std::move(packet));
     }
 

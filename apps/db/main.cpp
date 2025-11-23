@@ -35,6 +35,10 @@ class TempestDatabaseManager
 
         init_db();
         tempest_.add_handler([this](const Observation &obs) { insert_observation(obs); });
+    }
+
+    void run()
+    {
         tempest_.run();
     }
 
@@ -140,4 +144,5 @@ class TempestDatabaseManager
 int main()
 {
     TempestDatabaseManager tempest_db_mgr;
+    tempest_db_mgr.run();
 }
