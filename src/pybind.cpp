@@ -5,8 +5,9 @@
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(pytempest, m)
+PYBIND11_MODULE(_core, m)
 {
+    m.doc() = "Python library for receiving data from Tempest Weather Station";
     py::enum_<PrecipitationType>(m, "PrecipitationType")
         .value("NONE", PrecipitationType::NONE)
         .value("RAIN", PrecipitationType::RAIN)
