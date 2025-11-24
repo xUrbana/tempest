@@ -54,6 +54,7 @@ class Tempest
     using HandlerType = std::function<void(const Observation &)>;
     Tempest();
     void run();
+    void join();
     void add_handler(HandlerType func);
 
   private:
@@ -69,6 +70,8 @@ class Tempest
     std::shared_ptr<Receiver::QueueType> queue_;
     Receiver                             receiver_;
     std::vector<HandlerType>             handlers_;
+    std::unique_ptr<std::thread>         io_thread_;
+    std::unique_ptr<std::thread>         pc_thread_;
 };
 
 void from_json(const json &j, Observation &o);

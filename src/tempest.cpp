@@ -13,10 +13,14 @@ Tempest::Tempest() : queue_(std::make_shared<Receiver::QueueType>()), receiver_(
 void Tempest::run()
 {
     spdlog::info("Starting threads...");
-    std::thread io_thread([this]() { io_context_.run(); });
-    std::thread pc_thread([this]() { process(); });
-    io_thread.join();
-    pc_thread.join();
+    io_thread_ = std::make_unique<std::thread>([this]() { io_context_.run(); });
+    pc_thread_ = std::make_unique<std::thread>([this]() { process(); });
+}
+
+void Tempest::join()
+{
+    io_thread_->join();
+    pc_thread_->join();
 }
 
 void Tempest::add_handler(HandlerType func)

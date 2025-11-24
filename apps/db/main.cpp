@@ -40,6 +40,7 @@ class TempestDatabaseManager
     void run()
     {
         tempest_.run();
+        tempest_.join();
     }
 
   private:

@@ -42,7 +42,7 @@ The project uses CMake for building the C++ components.
 
 ## Installing the Python Module
 
-The `pytempest` Python module can be installed using `pip`. This process will automatically build the C++ extension using `scikit-build-core`.
+The `pytempest` Python module can be installed using `pip`. This process will automatically build the C++ extension using `scikit-build-core`. You must use a freethreading version of python. This application is built and tested with `python3.15t` but it should work with `python3.13t` as well.
 
 1.  **Ensure you have `pip` and a Python development environment:**
     ```bash
@@ -50,7 +50,7 @@ The `pytempest` Python module can be installed using `pip`. This process will au
     ```
 2.  **Install the Python package from the project root:**
     ```bash
-    pip install .
+    pip3 install .
     ```
 
 ## Usage
@@ -69,9 +69,10 @@ t = pytempest.Tempest()
 # The observation object 'o' will have attributes like 'air_temp_f', 'pressure_inhg', etc.
 t.add_handler(lambda o: print(f"Current Air Temperature: {o.air_temp_f}°F"))
 
-# Run the client to start receiving data
-# This will block until the application is stopped (e.g., Ctrl+C)
+# Run the client to start receiving data, this does not block
 t.run()
+# Do other stuff and then join at the end
+t.join()
 ```
 
 ### `tempest-print` Application (C++)

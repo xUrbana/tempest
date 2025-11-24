@@ -9,4 +9,5 @@ int main()
     Tempest t;
     t.add_handler([](const Observation &obs) { std::cout << "Temp: " << obs.air_temp_f << '\n'; });
     t.run();
+    t.join();
 }

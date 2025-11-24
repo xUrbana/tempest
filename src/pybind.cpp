@@ -5,7 +5,7 @@
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(_core, m)
+PYBIND11_MODULE(_core, m, py::mod_gil_not_used())
 {
     m.doc() = "Python library for receiving data from Tempest Weather Station";
     py::enum_<PrecipitationType>(m, "PrecipitationType")
@@ -50,6 +50,7 @@ PYBIND11_MODULE(_core, m)
 
     py::class_<Tempest>(m, "Tempest")
         .def(py::init<>())
-        .def("run", &Tempest::run, py::call_guard<py::gil_scoped_release>{})
+        .def("run", &Tempest::run) //, py::call_guard<py::gil_scoped_release>{})
+        .def("join", &Tempest::join)
         .def("add_handler", &Tempest::add_handler);
 }
