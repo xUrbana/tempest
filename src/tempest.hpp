@@ -1,5 +1,4 @@
 #pragma once
-#include "tsqueue.hpp"
 #include "udp_receiver.hpp"
 #include <boost/asio.hpp>
 #include <cstdint>
@@ -51,18 +50,18 @@ struct Observation
 class Tempest
 {
   public:
-    using HandlerType = std::function<void(const Observation &)>;
-    Tempest();
+    using HandlerType = std::function<void(const Observation&)>;
+    Tempest(bool verbose = false);
     void run();
     void join();
     void add_handler(HandlerType func);
 
   private:
     // Disable copy and move since this class contains sockets
-    Tempest(const Tempest &)            = delete;
-    Tempest(Tempest &&)                 = delete;
-    Tempest &operator=(const Tempest &) = delete;
-    Tempest &operator=(Tempest &&)      = delete;
+    Tempest(const Tempest&)            = delete;
+    Tempest(Tempest&&)                 = delete;
+    Tempest& operator=(const Tempest&) = delete;
+    Tempest& operator=(Tempest&&)      = delete;
 
     void process();
 
@@ -74,4 +73,4 @@ class Tempest
     std::unique_ptr<std::thread>         pc_thread_;
 };
 
-void from_json(const json &j, Observation &o);
+void from_json(const json& j, Observation& o);

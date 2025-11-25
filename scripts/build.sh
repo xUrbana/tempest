@@ -6,6 +6,7 @@ echo "Building with CMake..."
 mkdir -p build
 
 # Configure the project with CMake
+export CXX="$(which clang++)"
 cmake -B build -S .
 
 # Build the project

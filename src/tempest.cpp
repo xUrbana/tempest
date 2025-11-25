@@ -5,9 +5,11 @@
 #include <spdlog/spdlog.h>
 #include <thread>
 
-Tempest::Tempest() : queue_(std::make_shared<Receiver::QueueType>()), receiver_(io_context_, 50222, queue_)
+Tempest::Tempest(bool verbose)
+  : queue_(std::make_shared<Receiver::QueueType>())
+  , receiver_(io_context_, 50222, queue_)
 {
-    spdlog::set_level(spdlog::level::info);
+    spdlog::set_level(verbose ? spdlog::level::debug : spdlog::level::info);
 }
 
 void Tempest::run()
@@ -37,7 +39,7 @@ void Tempest::process()
         {
             queue_->pop(packet);
         }
-        catch (std::exception &e)
+        catch (std::exception& e)
         {
             spdlog::error("Failed to pop off queue: {}", e.what());
             continue;
@@ -50,7 +52,7 @@ void Tempest::process()
         {
             data = json::parse(packet.data);
         }
-        catch (std::runtime_error &e)
+        catch (std::runtime_error& e)
         {
             spdlog::error("Failed to parse JSON: {}", e.what());
             continue;
@@ -61,7 +63,7 @@ void Tempest::process()
         {
             spdlog::debug("Processing observation packet...");
             const auto obs = data.get<Observation>();
-            for (const auto &handler : handlers_)
+            for (const auto& handler : handlers_)
             {
                 spdlog::debug("Calling handler...");
                 handler(obs);
@@ -75,10 +77,10 @@ void Tempest::process()
     }
 }
 
-void from_json(const json &j, Observation &o)
+void from_json(const json& j, Observation& o)
 {
     static constexpr auto MS_TO_MPH  = 2.23694;
-    static constexpr auto C_TO_F     = [](const auto &c) { return ((c * 9.0 / 5.0) + 32); };
+    static constexpr auto C_TO_F     = [](const auto& c) { return ((c * 9.0 / 5.0) + 32); };
     static constexpr auto MM_TO_IN   = 0.0393701;
     static constexpr auto KM_TO_MI   = 0.621371;
     static constexpr auto MB_TO_INHG = 0.02953;
@@ -91,9 +93,10 @@ void from_json(const json &j, Observation &o)
 
     if (obs.size() != 18)
     {
-        // since the UDP message just uses an array of values and not keys... it isnt backwards compatible
+        // since the UDP message just uses an array of values and not keys... it isnt backwards
+        // compatible
         throw std::runtime_error(
-            std::format("Observation array in JSON message must have 18 fields, got {}", obs.size()));
+          std::format("Observation array in JSON message must have 18 fields, got {}", obs.size()));
     }
 
     obs[0].get_to(o.epoch_time);

@@ -3,18 +3,18 @@
 #include <mutex>
 #include <queue>
 
-template <typename T>
+template<typename T>
 class ThreadSafeQueue
 {
   public:
-    void push(T &&value)
+    void push(T&& value)
     {
         std::lock_guard<std::mutex> lock(mutex_);
         queue_.push(value);
-        condition_.notify_one(); // Signal waiting threads that data is ready
+        condition_.notify_one();
     }
 
-    void pop(T &value)
+    void pop(T& value)
     {
         std::unique_lock<std::mutex> lock(mutex_);
         // Wait until the queue is not empty. If it is, the thread blocks here.
