@@ -1,22 +1,23 @@
 #include "tempest.hpp"
 #include <cstdlib>
 #include <format>
-#include <iostream>
+#include <fstream>
 #include <memory>
 #include <pqxx/pqxx>
 #include <spdlog/spdlog.h>
+#include <sstream>
 
-inline std::string to_string(PrecipitationType t)
+inline std::string to_string(tempest::PrecipitationType t)
 {
     switch (t)
     {
-        case PrecipitationType::NONE:
+        case tempest::PrecipitationType::NONE:
             return "none";
-        case PrecipitationType::RAIN:
+        case tempest::PrecipitationType::RAIN:
             return "rain";
-        case PrecipitationType::HAIL:
+        case tempest::PrecipitationType::HAIL:
             return "hail";
-        case PrecipitationType::RAIN_AND_HAIL:
+        case tempest::PrecipitationType::RAIN_AND_HAIL:
             return "rain_and_hail";
         default:
             std::unreachable();
@@ -37,7 +38,7 @@ class TempestDatabaseManager
                       get_env("TEMPEST_DB_PASSWORD", "password")));
 
         init_db();
-        tempest_.add_handler([this](const Observation& obs) { insert_observation(obs); });
+        tempest_.add_handler([this](const tempest::Observation& obs) { insert_observation(obs); });
     }
 
     void run()
@@ -53,45 +54,16 @@ class TempestDatabaseManager
 
         pqxx::work tx(*db_);
 
-        tx.exec("drop type if exists precipitation_type cascade");
+        std::ifstream file("schema.sql");
+        if (!file.is_open())
+        {
+            spdlog::error("Failed to open schema.sql file, unable to initialize database.");
+            return;
+        }
 
-        tx.exec(R"(
-        create type precipitation_type as enum(
-            'none',
-            'rain',
-            'hail',
-            'rain_and_hail'
-        );
-        )");
-
-        tx.exec("drop table if exists observations cascade;");
-
-        tx.exec(R"(
-        create table if not exists observations(
-            id serial primary key,
-            time timestamp not null,
-            firmware_revision smallint not null,
-            station_sn text not null,
-            hub_sn text not null,
-            wind_lull_mph real not null,
-            wind_avg_mph real not null,
-            wind_gust_mph real not null,
-            wind_dir_deg smallint not null,
-            wind_sample_interval_secs smallint not null,
-            pressure_inhg real not null,
-            air_temp_f real not null,
-            relative_humidity real not null,
-            illuminance_lux integer not null,
-            uv_index smallint not null,
-            solar_radiation_wm2 integer not null,
-            rain_accum_in real not null,
-            precip_type precipitation_type not null,
-            lightning_strike_dist_mi real not null,
-            lightning_strike_count smallint not null,
-            battery_volts real not null,
-            report_interval smallint not null
-        );  
-        )");
+        std::stringstream stream;
+        stream << file.rdbuf();
+        tx.exec(stream.str());
 
         tx.commit();
 
@@ -107,7 +79,7 @@ class TempestDatabaseManager
                      "(to_timestamp($1),$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$"
                      "18,$19,$20,$21);");
     }
-    void insert_observation(const Observation& obs)
+    void insert_observation(const tempest::Observation& obs)
     {
         pqxx::work tx(*db_);
 
@@ -146,7 +118,7 @@ class TempestDatabaseManager
     }
 
     std::unique_ptr<pqxx::connection> db_;
-    Tempest                           tempest_;
+    tempest::Tempest                  tempest_;
 };
 
 int main()

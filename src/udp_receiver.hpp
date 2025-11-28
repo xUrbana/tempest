@@ -6,20 +6,16 @@
 #include <memory>
 #include <spdlog/spdlog.h>
 
-struct Packet
+namespace tempest
 {
-    std::string                    data;
-    boost::asio::ip::udp::endpoint endpoint;
-};
-
-class Receiver
+class UDPReceiver
 {
   public:
-    using QueueType = ThreadSafeQueue<Packet>;
+    using QueueType = ThreadSafeQueue<std::string>;
 
-    Receiver(boost::asio::io_context&                 io_context,
-             uint16_t                                 port,
-             std::shared_ptr<ThreadSafeQueue<Packet>> queue)
+    UDPReceiver(boost::asio::io_context&                      io_context,
+                uint16_t                                      port,
+                std::shared_ptr<ThreadSafeQueue<std::string>> queue)
       : queue_(std::move(queue))
       , socket_(io_context, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), port))
     {
@@ -39,7 +35,7 @@ class Receiver
                         std::size_t                                       bytes_read)
     {
         // Copy data into packet
-        Packet packet{ .data{ buffer_.data(), bytes_read }, .endpoint{ remote_endpoint_ } };
+        std::string packet(buffer_.data(), bytes_read);
 
         // Start the next receive
         receive();
@@ -49,8 +45,9 @@ class Receiver
     }
 
   private:
-    std::shared_ptr<ThreadSafeQueue<Packet>> queue_;
-    boost::asio::ip::udp::socket             socket_;
-    std::array<char, 1024>                   buffer_;
-    boost::asio::ip::udp::endpoint           remote_endpoint_;
+    std::shared_ptr<ThreadSafeQueue<std::string>> queue_;
+    boost::asio::ip::udp::socket                  socket_;
+    std::array<char, 1024>                        buffer_;
+    boost::asio::ip::udp::endpoint                remote_endpoint_;
 };
+}

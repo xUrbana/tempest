@@ -1,12 +1,11 @@
 #include "tempest.hpp"
-#include <cstdlib>
-#include <iostream>
-#include <print>
 #include <spdlog/spdlog.h>
 #include <thread>
 
+namespace tempest
+{
 Tempest::Tempest(bool verbose)
-  : queue_(std::make_shared<Receiver::QueueType>())
+  : queue_(std::make_shared<UDPReceiver::QueueType>())
   , receiver_(io_context_, 50222, queue_)
 {
     spdlog::set_level(verbose ? spdlog::level::debug : spdlog::level::info);
@@ -32,7 +31,7 @@ void Tempest::add_handler(HandlerType func)
 
 void Tempest::process()
 {
-    Packet packet;
+    std::string packet;
     while (true)
     {
         try
@@ -50,7 +49,7 @@ void Tempest::process()
         json data;
         try
         {
-            data = json::parse(packet.data);
+            data = json::parse(packet);
         }
         catch (std::runtime_error& e)
         {
@@ -61,11 +60,9 @@ void Tempest::process()
         auto packet_type = data["type"].get<std::string>();
         if (packet_type == "obs_st")
         {
-            spdlog::debug("Processing observation packet...");
             const auto obs = data.get<Observation>();
             for (const auto& handler : handlers_)
             {
-                spdlog::debug("Calling handler...");
                 handler(obs);
             }
             spdlog::debug(data.dump());
@@ -91,7 +88,7 @@ void from_json(const json& j, Observation& o)
     // denest observation array
     json obs = j.at("obs").at(0);
 
-    if (obs.size() != 18)
+    if (!obs.is_array() || obs.size() != 18)
     {
         // since the UDP message just uses an array of values and not keys... it isnt backwards
         // compatible
@@ -124,4 +121,5 @@ void from_json(const json& j, Observation& o)
     obs[15].get_to(o.lightning_strike_count);
     obs[16].get_to(o.battery_volts);
     obs[17].get_to(o.report_interval);
+}
 }
