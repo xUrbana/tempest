@@ -1,6 +1,6 @@
 add_library(tempest tempest.cpp)
 #add_library(tempest::tempest_lib ALIAS tempest_lib)
-target_compile_options(tempest PUBLIC -Wall -O3 -g)
+target_compile_options(tempest PUBLIC -Wall -O0 -g)
 target_include_directories(tempest PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(tempest PUBLIC nlohmann_json::nlohmann_json pqxx spdlog::spdlog)

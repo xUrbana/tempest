@@ -1,6 +1,7 @@
 #include "tempest.hpp"
 #include <format>
 #include <pybind11/functional.h>
+#include <pybind11/stl.h>
 #include <pybind11/pybind11.h>
 
 namespace py = pybind11;
@@ -47,10 +48,10 @@ PYBIND11_MODULE(_core, m, py::mod_gil_not_used())
       .def_readwrite("report_interval", &Observation::report_interval)
       .def("__repr__",
            [](const Observation& o)
-           { return std::format("<Observation sn={} temp={}>", o.station_sn, o.air_temp_f); });
+           { return std::format("<Observation sn={} temp={}>", o.station_sn.value_or("N/A"), o.air_temp_f.value_or(0)); });
 
     py::class_<Tempest>(m, "Tempest")
-      .def(py::init<bool>())
+      .def(py::init<const std::string&, const std::string&, bool>())
       .def("run", &Tempest::run)
       .def("join", &Tempest::join)
       .def("add_handler", &Tempest::add_handler);

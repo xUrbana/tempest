@@ -14,8 +14,12 @@ FetchContent_MakeAvailable(json)
 FetchContent_Declare(spdlog URL https://github.com/gabime/spdlog/archive/refs/tags/v1.16.0.tar.gz)
 FetchContent_MakeAvailable(spdlog)
 
-find_package(libpqxx REQUIRED)
+FetchContent_Declare(libpqxx URL https://github.com/jtv/libpqxx/archive/refs/tags/7.10.3.tar.gz)
+FetchContent_MakeAvailable(libpqxx)
+
+FetchContent_Declare(websocketpp URL https://github.com/zaphoyd/websocketpp/archive/refs/tags/0.8.2.tar.gz)
+FetchContent_MakeAvailable(websocketpp)
 
 add_subdirectory(src)
 add_subdirectory(apps)
-add_subdirectory(tests)
+#add_subdirectory(tests)

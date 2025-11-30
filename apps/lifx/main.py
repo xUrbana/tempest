@@ -107,6 +107,7 @@ def get_observation_severity(obs) -> float:
         'lightning': lightning_score,
         'environment': env_score
     }
+    print(score_report)
 
     scores = sorted(score_report.values(), reverse=True)
     primary_threat = scores[0]
