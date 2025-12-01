@@ -31,11 +31,11 @@ class TempestDatabaseManager
     {
         db_ = std::make_unique<pqxx::connection>(
           std::format("host={} port={} dbname={} user={} password={}",
-                      get_env("TEMPEST_DB_HOST", "localhost"),
-                      get_env("TEMPEST_DB_PORT", "5432"),
-                      get_env("TEMPEST_DB_NAME", "tempest"),
-                      get_env("TEMPEST_DB_USER", "tempest"),
-                      get_env("TEMPEST_DB_PASSWORD", "password")));
+                      tempest::get_env("TEMPEST_DB_HOST").value_or("localhost"),
+                      tempest::get_env("TEMPEST_DB_PORT").value_or("5432"),
+                      tempest::get_env("TEMPEST_DB_NAME").value_or("tempest"),
+                      tempest::get_env("TEMPEST_DB_USER").value_or("tempest"),
+                      tempest::get_env("TEMPEST_DB_PASSWORD").value_or("password")));
 
         init_db();
         tempest_.add_handler([this](const tempest::Observation& obs) { insert_observation(obs); });
@@ -108,13 +108,6 @@ class TempestDatabaseManager
 
         tx.commit();
         spdlog::info("Inserted observation...");
-    }
-
-    std::string get_env(const std::string& name, const std::string& default_value)
-    {
-        if (const char* v = std::getenv(name.c_str()))
-            return v;
-        return default_value;
     }
 
     std::unique_ptr<pqxx::connection> db_;

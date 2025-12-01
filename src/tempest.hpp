@@ -3,16 +3,15 @@
 #include "ws_receiver.hpp"
 #include <boost/asio.hpp>
 #include <cstdint>
+#include <format>
 #include <functional>
 #include <memory>
 #include <nlohmann/json.hpp>
-#include <vector>
 #include <optional>
-#include <format>
+#include <vector>
 
 namespace tempest
 {
-//using ws_ctx_ptr = websocketpp::lib::shared_ptr<websocketpp::lib::asio::ssl::context>;
 using json = nlohmann::json;
 
 enum class PrecipitationType
@@ -25,9 +24,9 @@ enum class PrecipitationType
 
 enum class PrecipitationAnalysisType
 {
-  NONE = 0,
-  RAIN_CHECK_DISPLAY_ON = 1,
-  RAIN_CHECK_DISPLAY_OFF = 2
+    NONE                   = 0,
+    RAIN_CHECK_DISPLAY_ON  = 1,
+    RAIN_CHECK_DISPLAY_OFF = 2
 };
 
 struct WindObservation
@@ -41,34 +40,38 @@ struct WindObservation
 
 struct Observation
 {
-    std::optional<uint16_t>          firmware_revision;
-    std::optional<std::string>       station_sn;
-    std::optional<std::string>       hub_sn;
-    std::optional<uint64_t>          epoch_time;
-    std::optional<WindObservation>   wind;
-    std::optional<double>            pressure_inhg;
-    std::optional<double>            air_temp_f;
-    std::optional<double>            relative_humidity;
-    std::optional<uint64_t>          illuminance_lux;
-    std::optional<uint16_t>          uv_index;
-    std::optional<uint64_t>          solar_radiation_wm2;
-    std::optional<double>            rain_accum_in;
-    std::optional<PrecipitationType> precipitation_type;
-    std::optional<double>            lightning_strike_dist_mi;
-    std::optional<uint16_t>          lightning_strike_count;
-    std::optional<double>            battery_volts;
-    std::optional<uint16_t>          report_interval;
-    std::optional<double>            local_daily_rain_accum_in;
-    std::optional<double>            rain_accum_final_in;
-    std::optional<double>            local_daily_rain_accum_final_in;
+    std::optional<uint16_t>                  firmware_revision;
+    std::optional<std::string>               station_sn;
+    std::optional<std::string>               hub_sn;
+    std::optional<uint64_t>                  epoch_time;
+    std::optional<WindObservation>           wind;
+    std::optional<double>                    pressure_inhg;
+    std::optional<double>                    air_temp_f;
+    std::optional<double>                    relative_humidity;
+    std::optional<uint64_t>                  illuminance_lux;
+    std::optional<uint16_t>                  uv_index;
+    std::optional<uint64_t>                  solar_radiation_wm2;
+    std::optional<double>                    rain_accum_in;
+    std::optional<PrecipitationType>         precipitation_type;
+    std::optional<double>                    lightning_strike_dist_mi;
+    std::optional<uint16_t>                  lightning_strike_count;
+    std::optional<double>                    battery_volts;
+    std::optional<uint16_t>                  report_interval;
+    std::optional<double>                    local_daily_rain_accum_in;
+    std::optional<double>                    rain_accum_final_in;
+    std::optional<double>                    local_daily_rain_accum_final_in;
     std::optional<PrecipitationAnalysisType> precipitation_analysis_type;
 };
 
 class Tempest
 {
   public:
-    using HandlerType = std::function<void(const Observation&)>;
-    Tempest(const std::string &token = "", const std::string &device_id = "", bool verbose = false);
+    using HandlerType                                   = std::function<void(const Observation&)>;
+    static constexpr char const* TEMPEST_TOKEN_ENV_NAME = "TEMPEST_TOKEN";
+    static constexpr char const* TEMPEST_DEVICE_ID_ENV_NAME = "TEMPEST_DEVICE_ID";
+
+    Tempest(bool verbose = false);
+
     void run();
     void join();
     void add_handler(HandlerType func);
@@ -91,31 +94,39 @@ class Tempest
     std::unique_ptr<std::thread>            ws_thread_;
 };
 
-template <typename T>
-void json_get(const json &j, std::optional<T> &o)
+template<typename T>
+void json_get(const json& j, std::optional<T>& o)
 {
-  o = j.get<T>();
+    o = j.get<T>();
 }
 
-template <typename T>
-void json_get(const json &j, T &o)
+template<typename T>
+void json_get(const json& j, T& o)
 {
-  o = j.get<T>();
+    o = j.get<T>();
 }
 
 void from_json(const json& j, Observation& o);
+
+inline std::optional<std::string> get_env(const char* name)
+{
+    if (const char* v = std::getenv(name))
+        return v;
+    return {};
+}
+
 }
 
 template<>
 struct std::formatter<tempest::Observation>
 {
-  constexpr auto parse(auto &ctx) const 
-  { 
-    return ctx.begin(); 
-  }
+    constexpr auto parse(auto& ctx) const { return ctx.begin(); }
 
-  constexpr auto format(const tempest::Observation& o, auto& ctx) const
-  {
-      return std::format_to(ctx.out(), "Observation(temp={}, lightning_count={})", o.air_temp_f.value_or(0), o.lightning_strike_count.value_or(0));
-  }
+    constexpr auto format(const tempest::Observation& o, auto& ctx) const
+    {
+        return std::format_to(ctx.out(),
+                              "Observation(temp={}, lightning_count={})",
+                              o.air_temp_f.value_or(0),
+                              o.lightning_strike_count.value_or(0));
+    }
 };

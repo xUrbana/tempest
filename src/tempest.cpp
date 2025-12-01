@@ -8,14 +8,24 @@
 
 namespace tempest
 {
-Tempest::Tempest(const std::string &token, const std::string &device_id, bool verbose)
+Tempest::Tempest(bool verbose)
   : queue_(std::make_shared<UDPReceiver::QueueType>())
   , udp_receiver_(50222, queue_)
 {
     spdlog::set_level(verbose ? spdlog::level::debug : spdlog::level::info);
-    if (token.size() > 0 && device_id.size() > 0)
+
+    auto token     = get_env(TEMPEST_TOKEN_ENV_NAME);
+    auto device_id = get_env(TEMPEST_DEVICE_ID_ENV_NAME);
+    if (token.has_value() && device_id.has_value())
     {
-        ws_receiver_ = std::make_unique<WebsocketReceiver>(token, device_id, queue_);
+        ws_receiver_ =
+          std::make_unique<WebsocketReceiver>(token.value(), device_id.value(), queue_);
+    }
+    else
+    {
+        spdlog::warn("One of {} or {} was not specified. Not starting websocket listener.",
+                     TEMPEST_TOKEN_ENV_NAME,
+                     TEMPEST_DEVICE_ID_ENV_NAME);
     }
 }
 
@@ -91,7 +101,6 @@ void from_json(const json& j, Observation& o)
     static constexpr auto KM_TO_MI   = 0.621371;
     static constexpr auto MB_TO_INHG = 0.02953;
 
-
     // local UDP provides firmware_revision, serial_number, and hub_sn
     try
     {
@@ -115,7 +124,7 @@ void from_json(const json& j, Observation& o)
     {
         json_get(j.at("hub_sb"), o.hub_sn);
     }
-    catch(json::out_of_range&)
+    catch (json::out_of_range&)
     {
         o.hub_sn = std::nullopt;
     }
@@ -130,7 +139,7 @@ void from_json(const json& j, Observation& o)
         throw std::runtime_error(
           std::format("Observation array in JSON message must have 18 fields, got {}", obs.size()));
     }
-    
+
     json_get(obs[0], o.epoch_time);
     o.wind = WindObservation{};
     json_get(obs[1], o.wind.value().lull_mph);
@@ -159,7 +168,8 @@ void from_json(const json& j, Observation& o)
     o.rain_accum_in.value() *= MM_TO_IN;
     o.lightning_strike_dist_mi.value() *= KM_TO_MI;
 
-    // websocket API provides 4 additional fields at the end of the array, everything else is the same
+    // websocket API provides 4 additional fields at the end of the array, everything else is the
+    // same
     try
     {
         json_get(obs.at(18), o.local_daily_rain_accum_in);
@@ -199,4 +209,5 @@ void from_json(const json& j, Observation& o)
         o.precipitation_analysis_type = std::nullopt;
     }
 }
+
 }

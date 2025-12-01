@@ -17,8 +17,22 @@ FetchContent_MakeAvailable(spdlog)
 FetchContent_Declare(libpqxx URL https://github.com/jtv/libpqxx/archive/refs/tags/7.10.3.tar.gz)
 FetchContent_MakeAvailable(libpqxx)
 
-FetchContent_Declare(websocketpp URL https://github.com/zaphoyd/websocketpp/archive/refs/tags/0.8.2.tar.gz)
-FetchContent_MakeAvailable(websocketpp)
+find_package(Boost REQUIRED COMPONENTS system thread regex)
+
+FetchContent_Declare(websocketpp GIT_REPOSITORY https://github.com/zaphoyd/websocketpp.git GIT_TAG 0.8.2)
+FetchContent_GetProperties(websocketpp)
+
+if(NOT websocketpp_POPULATED)
+  FetchContent_MakeAvailable(websocketpp)
+endif()
+
+# add interface library with all websocketpp dependencies
+add_library(websockets INTERFACE)
+target_include_directories(websockets INTERFACE ${websocketpp_SOURCE_DIR})
+target_link_libraries(websockets INTERFACE Boost::system Boost::thread Boost::regex)
+
+#FetchContent_Declare(websocketpp URL https://github.com/zaphoyd/websocketpp/archive/refs/tags/0.8.2.tar.gz)
+#FetchContent_MakeAvailable(websocketpp)
 
 add_subdirectory(src)
 add_subdirectory(apps)
