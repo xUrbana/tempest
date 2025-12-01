@@ -7,7 +7,7 @@ mkdir -p build
 
 # Configure the project with CMake
 export CXX="$(which clang++)"
-cmake -G Ninja -B build -S .
+cmake -B build -S .
 
 # Build the project
 cmake --build build -j12
